@@ -12,10 +12,12 @@
 ├── README.md             # 本文件
 ├── 签到2026_XX.csv       # 导出的签到数据
 └── 核心文件/
-    ├── export_node.js    # 主脚本：拉取 + 导出 CSV
+    ├── server.js         # Web 应用：浏览器界面 + 导出
+    ├── export_node.js    # CLI 脚本：命令行 + 导出
     ├── load_env.js       # .env 加载模块
-    ├── config.json       # 非敏感配置（输出路径、部门 ID）
-    └── daily_checkin.bat # 双击运行
+    ├── config.json       # 非敏感配置（输出路径）
+    ├── server.bat        # 双击启动 Web 服务
+    └── daily_checkin.bat # 双击运行 CLI 模式
 ```
 
 ## 快速开始
@@ -33,11 +35,22 @@ cp .env.example .env
 
 ### 3. 运行
 
-```bash
-# 方式一：命令行
-node 核心文件/export_node.js
+**Web 应用（推荐）：**
 
-# 方式二：双击 daily_checkin.bat
+```bash
+node 核心文件/server.js
+# 或双击 server.bat，浏览器自动打开 http://localhost:3000
+```
+
+- 日历点选起止日期，点击切换月份
+- 下拉选择部门
+- 预览确认后一键导出 CSV
+
+**CLI 模式：**
+
+```bash
+node 核心文件/export_node.js
+# 或双击 daily_checkin.bat
 ```
 
 ## 配置说明
@@ -45,7 +58,22 @@ node 核心文件/export_node.js
 | 文件 | 说明 |
 |------|------|
 | `.env` | 钉钉应用 AppKey / AppSecret（敏感，已 Git 忽略） |
-| `config.json` | `outputPath`：CSV 输出目录；`department_id`：部门 ID |
+| `config.json` | `outputPath`：CSV 输出目录 |
+
+## 使用流程
+
+### Web 应用
+1. 双击 `server.bat` 或在终端运行 `node 核心文件/server.js`
+2. 浏览器自动打开，页面加载部门列表
+3. 点击日历选择起止日期（第一次点击 = 起始，第二次点击 = 结束）
+4. 点击「预览数据」确认记录数
+5. 点击「导出 CSV」下载文件
+
+### CLI 模式
+1. 运行脚本后，自动拉取钉钉部门列表
+2. 输入数字选择要导出的部门
+3. 输入导出时间范围（YYYY-MM 格式，直接回车默认本月）
+4. 脚本自动分页拉取并导出 CSV
 
 ## 导出格式
 
