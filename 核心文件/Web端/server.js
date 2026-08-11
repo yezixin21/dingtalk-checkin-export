@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { setTimeout: sleep } = require('timers/promises');
-const { loadEnv } = require('./load_env');
+const { loadEnv } = require('../load_env');
 
 // ========== 配置初始化 ==========
-loadEnv(path.join(__dirname, '..', '.env'));
+loadEnv(path.join(__dirname, '..', '..', '.env'));
 
 const appkey = process.env.DINGTALK_APPKEY;
 const appsecret = process.env.DINGTALK_APPSECRET;
@@ -14,7 +14,7 @@ if (!appkey || !appsecret) {
     process.exit(1);
 }
 
-const config = require('./config.json');
+const config = require('../config.json');
 const outputPath = config.outputPath || path.join(__dirname, '..');
 
 // ========== 常量 ==========
@@ -245,6 +245,13 @@ async function handleRequest(req, res) {
                 'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
             });
             res.end(csv);
+            return;
+        }
+
+        // POST /api/shutdown — 关闭服务器
+        if (method === 'POST' && url.pathname === '/api/shutdown') {
+            sendJSON(res, { ok: true, msg: '服务器已关闭' });
+            setTimeout(() => { server.close(() => process.exit(0)); }, 100);
             return;
         }
 
@@ -778,6 +785,11 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     }
 
     // ========== 导出 ==========
+    // 关闭页面时自动关闭服务器
+    window.addEventListener('beforeunload', () => {
+        navigator.sendBeacon('/api/shutdown');
+    });
+
     btnExport.addEventListener('click', async () => {
         btnExport.disabled = true;
         btnExport.textContent = '导出中...';

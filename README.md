@@ -12,12 +12,14 @@
 ├── README.md             # 本文件
 ├── 签到2026_XX.csv       # 导出的签到数据
 └── 核心文件/
-    ├── server.js         # Web 应用：浏览器界面 + 导出
-    ├── export_node.js    # CLI 脚本：命令行 + 导出
-    ├── load_env.js       # .env 加载模块
-    ├── config.json       # 非敏感配置（输出路径）
-    ├── server.bat        # 双击启动 Web 服务
-    └── daily_checkin.bat # 双击运行 CLI 模式
+    ├── load_env.js       # 共用：.env 加载模块
+    ├── config.json       # 共用：非敏感配置
+    ├── Web端/
+    │   ├── server.js     # Web 应用入口
+    │   └── server.bat    # 双击启动 Web 服务
+    └── CLI端/
+        ├── export_node.js    # CLI 脚本入口
+        └── daily_checkin.bat # 双击运行 CLI 模式
 ```
 
 ## 快速开始
@@ -38,8 +40,8 @@ cp .env.example .env
 **Web 应用（推荐）：**
 
 ```bash
-node 核心文件/server.js
-# 或双击 server.bat，浏览器自动打开 http://localhost:3000
+node 核心文件/Web端/server.js
+# 或双击核心文件/Web端/server.bat，浏览器自动打开 http://localhost:3000
 ```
 
 - 日历点选起止日期，点击切换月份
@@ -49,8 +51,8 @@ node 核心文件/server.js
 **CLI 模式：**
 
 ```bash
-node 核心文件/export_node.js
-# 或双击 daily_checkin.bat
+node 核心文件/CLI端/export_node.js
+# 或双击核心文件/CLI端/daily_checkin.bat
 ```
 
 ## 配置说明
@@ -63,11 +65,12 @@ node 核心文件/export_node.js
 ## 使用流程
 
 ### Web 应用
-1. 双击 `server.bat` 或在终端运行 `node 核心文件/server.js`
+1. 双击 `核心文件/Web端/server.bat` 或在终端运行 `node 核心文件/Web端/server.js`
 2. 浏览器自动打开，页面加载部门列表
 3. 点击日历选择起止日期（第一次点击 = 起始，第二次点击 = 结束）
 4. 点击「预览数据」确认记录数
 5. 点击「导出 CSV」下载文件
+6. 关闭浏览器标签页，服务器自动退出
 
 ### CLI 模式
 1. 运行脚本后，自动拉取钉钉部门列表
