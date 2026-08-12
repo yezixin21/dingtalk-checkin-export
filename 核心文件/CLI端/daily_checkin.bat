@@ -1,4 +1,10 @@
 @echo off
 cd /d "%~dp0"
-"%~dp0..\..\nodejs\node.exe" export_node.js
+
+set "NODE=node"
+if exist "%~dp0..\..\nodejs\node.exe" set "NODE=%~dp0..\..\nodejs\node.exe"
+
+echo Starting CLI export...
+echo.
+"%NODE%" export_node.js
 pause

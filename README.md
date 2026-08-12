@@ -24,9 +24,14 @@
 
 ## 快速开始
 
-### 1. 安装 Node.js
+### 1. 一键 Setup（新电脑首次使用）
 
-需要 Node.js 18+（内置 `fetch` API）。
+```bash
+# 双击项目根目录下的 setup.bat
+# 自动下载便携版 Node.js（~40MB），只需运行一次
+```
+
+也支持手动安装 Node.js 18+（需内置 `fetch` API）。
 
 ### 2. 配置凭据
 
