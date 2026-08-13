@@ -313,17 +313,22 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
 
 /* 日历 */
 .calendar { margin-bottom: 20px; }
-.cal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
+.cal-grids { display: flex; gap: 16px; align-items: flex-start; }
+.cal-panel { flex: 1; min-width: 0; }
+.cal-panel-header {
+    display: grid; grid-template-columns: 34px 1fr 34px; align-items: center;
+    margin-bottom: 12px; height: 34px;
 }
-.cal-header .month-label { font-size: 16px; font-weight: 600; }
+.cal-panel-title { grid-column: 2; text-align: center; font-size: 15px; font-weight: 600; color: #333; }
 .cal-nav {
     width: 34px; height: 34px; border: 1px solid #d9d9d9; border-radius: 8px;
     background: #fff; cursor: pointer; font-size: 14px; color: #666;
     display: flex; align-items: center; justify-content: center; user-select: none;
 }
 .cal-nav:hover { border-color: #1677ff; color: #1677ff; }
+.cal-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.cal-nav:disabled:hover { border-color: #d9d9d9; color: #666; }
+.cal-panel-header .cal-nav:last-child { grid-column: 3; }
 
 .weekdays {
     display: grid; grid-template-columns: repeat(7, 1fr);
@@ -426,15 +431,28 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     </div>
 
     <div class="calendar">
-        <div class="cal-header">
-            <button class="cal-nav" id="prevMonth">◀</button>
-            <span class="month-label" id="monthLabel"></span>
-            <button class="cal-nav" id="nextMonth">▶</button>
+        <div class="cal-grids">
+            <div class="cal-panel">
+                <div class="cal-panel-header">
+                    <button class="cal-nav" id="prevMonth">◀</button>
+                    <span class="cal-panel-title" id="leftMonthLabel"></span>
+                </div>
+                <div class="weekdays">
+                    <span class="weekend">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="weekend">六</span>
+                </div>
+                <div class="days" id="daysGridLeft"></div>
+            </div>
+            <div class="cal-panel">
+                <div class="cal-panel-header">
+                    <span class="cal-panel-title" id="rightMonthLabel"></span>
+                    <button class="cal-nav" id="nextMonth">▶</button>
+                </div>
+                <div class="weekdays">
+                    <span class="weekend">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="weekend">六</span>
+                </div>
+                <div class="days" id="daysGridRight"></div>
+            </div>
         </div>
-        <div class="weekdays">
-            <span class="weekend">日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span class="weekend">六</span>
-        </div>
-        <div class="days" id="daysGrid"></div>
     </div>
 
     <div class="range-info">
@@ -466,17 +484,19 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     let hoverDate = null;    // {year, month, day} — 悬停中动态预览
     let startDate = null;    // {year, month, day} — 确认后的起始
     let endDate = null;      // {year, month, day} — 确认后的结束
-    let viewYear, viewMonth;
-    let daysInMonth;
-    let dayCells = {};       // {dayNum: DOM element} — 本月日期格子引用
+    let viewYear, viewMonth;   // 左月面板的年份/月份（右月 = 左月 + 1）
+    let dayCells = [];         // 可见月份日期格子（DOM 元素），每格带 _key = dateKey 整数
     const today = new Date();
     const TODAY_Y = today.getFullYear();
     const TODAY_M = today.getMonth() + 1;
     const TODAY_D = today.getDate();
 
     const deptSelect = document.getElementById('deptSelect');
-    const monthLabel = document.getElementById('monthLabel');
-    const daysGrid = document.getElementById('daysGrid');
+    const leftMonthLabel = document.getElementById('leftMonthLabel');
+    const rightMonthLabel = document.getElementById('rightMonthLabel');
+    const daysGridLeft = document.getElementById('daysGridLeft');
+    const daysGridRight = document.getElementById('daysGridRight');
+    const calGrids = document.querySelector('.cal-grids');
     const startLabel = document.getElementById('startLabel');
     const endLabel = document.getElementById('endLabel');
     const btnPreview = document.getElementById('btnPreview');
@@ -547,37 +567,50 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
         }
     }
 
+    // ========== 月份工具 ==========
+    // 返回 [year, month]，delta 可正可负（跨年自动进位/借位）
+    function addMonth(y, m, delta) {
+        const t = y * 12 + (m - 1) + delta;
+        return [Math.floor(t / 12), t % 12 + 1];
+    }
+
     // ========== 日历渲染（全量重建 DOM，仅 click / 月份切换时调用）==========
     function renderCalendar() {
-        monthLabel.textContent = \`\${viewYear}年 \${viewMonth}月\`;
-        daysGrid.innerHTML = '';
-        dayCells = {};
+        const [ry, rm] = addMonth(viewYear, viewMonth, 1);
+        leftMonthLabel.textContent = viewYear + '年 ' + viewMonth + '月';
+        rightMonthLabel.textContent = ry + '年 ' + rm + '月';
+        dayCells = [];
 
-        const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay(); // 0=Sun
-        daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
-        const daysInPrev = new Date(viewYear, viewMonth - 1, 0).getDate();
+        renderMonthGrid(daysGridLeft, viewYear, viewMonth);
+        renderMonthGrid(daysGridRight, ry, rm);
+        nextBtn.disabled = (ry === TODAY_Y && rm === TODAY_M);
+        applyDayStyles();
+        updateUI();
+    }
+
+    function renderMonthGrid(grid, y, m) {
+        grid.innerHTML = '';
+        const firstDay = new Date(y, m - 1, 1).getDay(); // 0=Sun
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const daysInPrev = new Date(y, m - 1, 0).getDate();
 
         // 上月末尾
         for (let i = firstDay - 1; i >= 0; i--) {
-            daysGrid.appendChild(mkOtherDay(daysInPrev - i));
+            grid.appendChild(mkOtherDay(daysInPrev - i));
         }
 
         // 本月日期
         for (let d = 1; d <= daysInMonth; d++) {
-            const div = mkDay(d);
-            daysGrid.appendChild(div);
-            dayCells[d] = div;
+            const div = mkDay(y, m, d);
+            grid.appendChild(div);
+            dayCells.push(div);
         }
 
-        // 下月开头
-        const totalCells = firstDay + daysInMonth;
-        const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        // 下月开头（统一补齐到 6 行 = 42 格，保证两个月高度一致）
+        const remaining = 42 - firstDay - daysInMonth;
         for (let d = 1; d <= remaining; d++) {
-            daysGrid.appendChild(mkOtherDay(d));
+            grid.appendChild(mkOtherDay(d));
         }
-
-        applyDayStyles();
-        updateUI();
     }
 
     function mkOtherDay(text) {
@@ -587,22 +620,23 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
         return div;
     }
 
-    function mkDay(d) {
+    function mkDay(y, m, d) {
         const div = document.createElement('div');
         div.className = 'day';
+        div._key = dateKey(y, m, d);
         div.textContent = d;
 
         // 今天标记（静态，不会随选择变化）
-        if (TODAY_Y === viewYear && TODAY_M === viewMonth && TODAY_D === d) {
+        if (TODAY_Y === y && TODAY_M === m && TODAY_D === d) {
             div.classList.add('today');
         }
 
-        const future = isFuture(viewYear, viewMonth, d);
+        const future = isFuture(y, m, d);
         if (future) {
             div.classList.add('future');
         } else {
-            div.addEventListener('click', () => onDayClick(viewYear, viewMonth, d));
-            div.addEventListener('mouseenter', () => onDayHover(viewYear, viewMonth, d));
+            div.addEventListener('click', () => onDayClick(y, m, d));
+            div.addEventListener('mouseenter', () => onDayHover(y, m, d));
         }
         return div;
     }
@@ -612,30 +646,23 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
         const [dsStart, dsEnd] = getDisplayRange();
         const startKey = dsStart ? dateKey(dsStart.year, dsStart.month, dsStart.day) : 0;
         const endKey = dsEnd ? dateKey(dsEnd.year, dsEnd.month, dsEnd.day) : 0;
+        const anchorKey = anchorDate ? dateKey(anchorDate.year, anchorDate.month, anchorDate.day) : 0;
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const div = dayCells[d];
-            if (!div) continue;
+        for (const div of dayCells) {
+            const curKey = div._key;
             div.classList.remove('anchor','pending-range','in-range','range-start','range-end');
-
-            const curKey = dateKey(viewYear, viewMonth, d);
 
             // 确认后的范围高亮
             if (startDate && startKey) {
-                if (dsStart && viewYear === dsStart.year && viewMonth === dsStart.month && d === dsStart.day)
-                    div.classList.add('range-start');
-                if (dsEnd && viewYear === dsEnd.year && viewMonth === dsEnd.month && d === dsEnd.day)
-                    div.classList.add('range-end');
-                if (curKey > startKey && curKey < endKey)
-                    div.classList.add('in-range');
+                if (curKey === startKey) div.classList.add('range-start');
+                if (curKey === endKey) div.classList.add('range-end');
+                if (curKey > startKey && curKey < endKey) div.classList.add('in-range');
             }
 
             // 动态预览高亮（锚点已选，尚未确认）
             if (anchorDate && !startDate) {
-                if (viewYear === anchorDate.year && viewMonth === anchorDate.month && d === anchorDate.day)
-                    div.classList.add('anchor');
-                if (hoverDate && startKey && curKey >= startKey && curKey <= endKey &&
-                    !(viewYear === anchorDate.year && viewMonth === anchorDate.month && d === anchorDate.day)) {
+                if (curKey === anchorKey) div.classList.add('anchor');
+                if (hoverDate && startKey && curKey >= startKey && curKey <= endKey && curKey !== anchorKey) {
                     div.classList.add('pending-range');
                 }
             }
@@ -650,7 +677,7 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     }
 
     // ========== 离开日历清除悬停 ==========
-    daysGrid.addEventListener('mouseleave', () => {
+    calGrids.addEventListener('mouseleave', () => {
         if (anchorDate && !startDate && hoverDate) {
             hoverDate = null;
             applyDayStyles();
@@ -660,7 +687,6 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     // ========== 事件处理 ==========
     function onDayHover(y, m, d) {
         if (!anchorDate || startDate) return;
-        if (y !== viewYear || m !== viewMonth) return;
         hoverDate = { year: y, month: m, day: d };
         applyDayStyles();
     }
@@ -718,9 +744,7 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
 
     // ========== 月份导航 ==========
     function navigateMonth(delta) {
-        viewMonth += delta;
-        if (viewMonth < 1) { viewMonth = 12; viewYear--; }
-        else if (viewMonth > 12) { viewMonth = 1; viewYear++; }
+        [viewYear, viewMonth] = addMonth(viewYear, viewMonth, delta);
         if (anchorDate && !startDate) hoverDate = null;
         renderCalendar();
     }
@@ -825,8 +849,8 @@ h1 { text-align: center; font-size: 22px; margin-bottom: 24px; color: #1a1a1a; }
     });
 
     // ========== 初始化 ==========
-    viewYear = TODAY_Y;
-    viewMonth = TODAY_M;
+    // 左面板 = 上月，右面板 = 本月
+    [viewYear, viewMonth] = addMonth(TODAY_Y, TODAY_M, -1);
     loadDepts();
     renderCalendar();
 })();
