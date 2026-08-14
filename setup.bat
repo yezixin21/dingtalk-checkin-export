@@ -8,7 +8,7 @@ echo This script will download portable Node.js for this project.
 echo It only needs to run ONCE on a new computer.
 echo.
 
-if exist "%~dp0nodejs\node.exe" (
+if exist "%~dp0node.exe" (
     echo [OK] Portable Node.js already exists. No setup needed.
     echo.
     pause
@@ -30,16 +30,13 @@ echo Mirror: npmmirror.com
 echo.
 
 set "NODE_URL=https://registry.npmmirror.com/-/binary/node/v26.7.0/win-x64/node.exe"
-set "NODE_DIR=%~dp0nodejs"
 
-if not exist "%NODE_DIR%" mkdir "%NODE_DIR%"
-
-echo Saving to: %NODE_DIR%\node.exe
+echo Saving to: %~dp0node.exe
 echo.
 
-powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%NODE_DIR%\node.exe' -UseBasicParsing}"
+powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%~dp0node.exe' -UseBasicParsing}"
 
-if not exist "%NODE_DIR%\node.exe" (
+if not exist "%~dp0node.exe" (
     echo.
     echo [FAIL] Download failed. Please check your internet connection.
     echo You can also install Node.js manually: https://nodejs.org
@@ -52,7 +49,7 @@ echo ========================================
 echo   Setup complete!
 echo ========================================
 echo.
-echo Node.js installed to: %NODE_DIR%
+echo Node.js installed to: %~dp0node.exe
 echo.
 echo Next steps:
 echo   1. Copy .env.example to .env and fill in your credentials

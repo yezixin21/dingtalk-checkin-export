@@ -1,4 +1,4 @@
 .env
 签到*.csv
-nodejs/
+node.exe
 *.lnk
