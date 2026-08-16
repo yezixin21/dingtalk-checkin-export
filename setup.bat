@@ -24,17 +24,19 @@ if %errorlevel% equ 0 (
     if errorlevel 2 goto :skip
 )
 
+set "NODE_VER=v26.7.0"
+
 echo.
-echo Downloading Node.js v26.7.0 (portable, ~40MB)...
+echo Downloading Node.js %NODE_VER% (portable, ~40MB)...
 echo Mirror: npmmirror.com
 echo.
 
-set "NODE_URL=https://registry.npmmirror.com/-/binary/node/v26.7.0/win-x64/node.exe"
+set "NODE_URL=https://registry.npmmirror.com/-/binary/node/%NODE_VER%/win-x64/node.exe"
 
 echo Saving to: %~dp0node.exe
 echo.
 
-powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%~dp0node.exe' -UseBasicParsing}"
+powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%NODE_URL%' -OutFile '%~dp0node.exe' -UseBasicParsing"
 
 if not exist "%~dp0node.exe" (
     echo.
